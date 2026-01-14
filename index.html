@@ -177,11 +177,10 @@
     </div>
 
     <script>
-        // --- UPDATED APPWRITE CONFIG FROM YOUR SCREENSHOT ---
         const { Client, Account, ID } = Appwrite;
         const client = new Client()
-            .setEndpoint('https://fra.cloud.appwrite.io/v1') // Your specific endpoint
-            .setProject('69679293001b8cd4ab6e');             // Your Project ID
+            .setEndpoint('https://fra.cloud.appwrite.io/v1') // Verified from screenshot
+            .setProject('69679293001b8cd4ab6e');             // Verified from screenshot
 
         const account = new Account(client);
 
@@ -214,7 +213,7 @@
             loginModeBtn.classList.add('active');
             signupModeBtn.classList.remove('active');
             emailField.classList.add('hidden'); 
-            userLabel.innerText = "EMAIL"; // Use the top box for Email during login
+            userLabel.innerText = "EMAIL";
             headerAction.innerText = "ACCESS YOUR";
             continueBtn.innerText = "LOG IN";
         });
@@ -242,14 +241,12 @@
                 if (currentMode === 'signup') {
                     // Create Account
                     await account.create(ID.unique(), emailVal, passwordVal, userVal);
-                    // Login Session
-                    await account.createEmailPasswordSession(emailVal, passwordVal);
+                    // Login Session - SDK v13.0.1 uses createEmailSession
+                    await account.createEmailSession(emailVal, passwordVal);
                     localStorage.setItem('username', userVal);
                 } else {
-                    // Login (The email is typed into the 'username' box in login mode)
-                    await account.createEmailPasswordSession(userVal, passwordVal);
-                    
-                    // Fetch user info to get the name for localStorage
+                    // Login Mode - Email is typed into 'username' box
+                    await account.createEmailSession(userVal, passwordVal);
                     const user = await account.get();
                     localStorage.setItem('username', user.name);
                 }
