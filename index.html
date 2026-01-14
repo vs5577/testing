@@ -32,7 +32,6 @@
             box-sizing: border-box;
         }
 
-        /* --- Top Welcome Section --- */
         .top-welcome-header {
             width: 100%;
             max-width: 1200px;
@@ -52,7 +51,6 @@
         .logo-i { font-family: 'Tilt Prism', cursive; margin: 0 2px; }
         .to-learn { font-family: 'Snippet', sans-serif; font-size: 3rem; vertical-align: middle; }
 
-        /* --- Main Container --- */
         .main-wrapper {
             position: relative;
             width: 100%;
@@ -81,7 +79,6 @@
         .header-text { font-size: 28px; font-family: 'Sofia', cursive; margin-bottom: -15px; }
         .main-title { font-size: clamp(50px, 8vw, 100px); margin: 0; letter-spacing: 5px; line-height: 1; font-family: 'Sofia', cursive; }
 
-        /* Content Row */
         .content-row {
             display: flex;
             align-items: center;
@@ -108,7 +105,6 @@
             color: #000;
         }
 
-        /* Profile Icon Area */
         .profile-container { position: relative; flex-shrink: 0; }
         .profile-ring {
             width: 180px; height: 180px;
@@ -119,7 +115,6 @@
             background: rgba(255,255,255,0.05);
         }
 
-        /* Footer */
         .footer-wrapper { margin-top: 40px; display: flex; justify-content: flex-end; width: 100%; }
         .continue-btn {
             font-family: 'Tilt Prism', cursive; font-size: 1.5rem;
@@ -129,8 +124,8 @@
         }
 
         .continue-btn:hover { background-color: var(--bg-color); color: var(--text-color); box-shadow: 0 0 15px var(--text-color); }
+        .continue-btn:disabled { opacity: 0.6; cursor: wait; }
 
-        /* Hide email field in Login mode */
         .hidden { display: none !important; }
 
         @media (max-width: 900px) {
@@ -158,7 +153,7 @@
         <div class="content-row">
             <div class="input-group">
                 <div class="field">
-                    <label>USERNAME</label>
+                    <label id="userLabel">USERNAME</label>
                     <input type="text" id="usernameInput" spellcheck="false" placeholder="Your Name">
                 </div>
                 <div class="field" id="emailField">
@@ -182,19 +177,19 @@
     </div>
 
     <script>
-        // --- APPWRITE CONFIGURATION ---
+        // --- UPDATED APPWRITE CONFIG FROM YOUR SCREENSHOT ---
         const { Client, Account, ID } = Appwrite;
         const client = new Client()
-            .setEndpoint('https://cloud.appwrite.io/v1') // Replace with your endpoint if self-hosted
-            .setProject('YOUR_PROJECT_ID'); // REPLACE WITH YOUR PROJECT ID
+            .setEndpoint('https://fra.cloud.appwrite.io/v1') // Your specific endpoint
+            .setProject('69679293001b8cd4ab6e');             // Your Project ID
 
         const account = new Account(client);
 
-        // --- UI ELEMENTS ---
         const usernameInput = document.getElementById('usernameInput');
         const emailInput = document.getElementById('emailInput');
         const passwordInput = document.getElementById('passwordInput');
         const emailField = document.getElementById('emailField');
+        const userLabel = document.getElementById('userLabel');
         const profileDisplay = document.getElementById('profileDisplay');
         const continueBtn = document.getElementById('continueButton');
         const signupModeBtn = document.getElementById('signupMode');
@@ -209,6 +204,7 @@
             signupModeBtn.classList.add('active');
             loginModeBtn.classList.remove('active');
             emailField.classList.remove('hidden');
+            userLabel.innerText = "USERNAME";
             headerAction.innerText = "COMPLETE YOUR";
             continueBtn.innerText = "CONTINUE";
         });
@@ -217,12 +213,12 @@
             currentMode = 'login';
             loginModeBtn.classList.add('active');
             signupModeBtn.classList.remove('active');
-            emailField.classList.add('hidden'); // Login usually uses Email or Username; here we use Email for Auth
+            emailField.classList.add('hidden'); 
+            userLabel.innerText = "EMAIL"; // Use the top box for Email during login
             headerAction.innerText = "ACCESS YOUR";
             continueBtn.innerText = "LOG IN";
         });
 
-        // Live profile character update
         usernameInput.addEventListener('input', (e) => {
             const value = e.target.value;
             profileDisplay.innerText = value.length > 0 ? value.charAt(0).toUpperCase() : '@';
@@ -230,12 +226,12 @@
 
         // --- AUTH LOGIC ---
         continueBtn.addEventListener('click', async () => {
-            const username = usernameInput.value.trim();
-            const email = emailInput.value.trim();
-            const password = passwordInput.value.trim();
+            const userVal = usernameInput.value.trim();
+            const emailVal = emailInput.value.trim();
+            const passwordVal = passwordInput.value.trim();
 
-            if (!password || (currentMode === 'signup' && (!username || !email))) {
-                alert("Please fill in all required fields.");
+            if (!passwordVal || (currentMode === 'signup' && (!userVal || !emailVal)) || (currentMode === 'login' && !userVal)) {
+                alert("Please fill in all fields.");
                 return;
             }
 
@@ -244,24 +240,25 @@
 
             try {
                 if (currentMode === 'signup') {
-                    // 1. Create User Account
-                    await account.create(ID.unique(), email, password, username);
-                    // 2. Create Session (Log them in automatically)
-                    await account.createEmailPasswordSession(email, password);
-                    alert("Account Created successfully!");
+                    // Create Account
+                    await account.create(ID.unique(), emailVal, passwordVal, userVal);
+                    // Login Session
+                    await account.createEmailPasswordSession(emailVal, passwordVal);
+                    localStorage.setItem('username', userVal);
                 } else {
-                    // Login Mode (Requires email and password)
-                    // Note: If you want to login by username, Appwrite usually requires Email.
-                    // If loginMode is active, the user should put their email in the email box.
-                    await account.createEmailPasswordSession(email, password);
+                    // Login (The email is typed into the 'username' box in login mode)
+                    await account.createEmailPasswordSession(userVal, passwordVal);
+                    
+                    // Fetch user info to get the name for localStorage
+                    const user = await account.get();
+                    localStorage.setItem('username', user.name);
                 }
 
-                localStorage.setItem('username', username || email);
                 window.location.href = 'https://willtolearnofficial.github.io/WILL.TOLEARN/home.html';
 
             } catch (error) {
                 console.error(error);
-                alert(error.message);
+                alert("Error: " + error.message);
                 continueBtn.disabled = false;
                 continueBtn.innerText = currentMode === 'signup' ? "CONTINUE" : "LOG IN";
             }
